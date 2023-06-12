@@ -16,12 +16,14 @@ contract BroStake is Ownable {
     uint256 apr;
     uint256 aprDiv;
     uint256 yearSecond = 31536000;
+    uint256 lockPeriod = 30 * 24 * 3600;
 
     address devWallet = 0x7361A0E33F717BaF49cd946f5B748E6AA81cC6Fb;
 
     mapping(address=>uint256) stakingStatus;
     mapping(address=>uint256) claimTimestamp;
     mapping(address=>uint256) rewardStatus;
+    mapping(address=>uint256) stakingTimestamp;
 
     uint256 public totalStaked;
     uint256 public totalClaimed;
@@ -61,6 +63,15 @@ contract BroStake is Ownable {
         emit SetContractStatus(msg.sender, _newPauseContract);
     }
 
+    function getLockperiod() public view returns (uint256) {
+        return lockPeriod;
+    }
+
+    function setLockperiod(uint256 _newLockperiod) external onlyOwner {
+        lockPeriod = _newLockperiod;
+        emit SetContractStatus(msg.sender, lockPeriod);
+    }
+
     function getRealTokenAddress() public view returns(address){
         return realTokenAddress;
     }
@@ -90,6 +101,7 @@ contract BroStake is Ownable {
         }
         
         stakingStatus[msg.sender] += _amount;
+        stakingTimestamp[msg.sender] = block.timestamp;
         claimTimestamp[msg.sender] = block.timestamp;
         totalStaked += _amount;
         
@@ -111,6 +123,7 @@ contract BroStake is Ownable {
 
     function unstake() external{
         require(stakingStatus[msg.sender] != 0, "No staked!");
+        require(block.timestamp - stakingTimestamp[msg.sender] >= lockPeriod, "In Lock period!");
         
         uint256 reward = rewardStatus[msg.sender];
         uint256 staked = stakingStatus[msg.sender];

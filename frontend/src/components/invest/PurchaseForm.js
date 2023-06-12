@@ -101,7 +101,16 @@ const PurchaseForm = () => {
                     <div className="newInputs">
                         <div className="leftInputs NewHolder">
                             <div className="amoutToken">
-                                <label>From</label>                                    
+                                <label>Total Staked</label>                                    
+                                { 
+                                balanceOfMatic >= 0 ?
+                                    <span>Balance : {balanceOfMatic}</span>
+                                    :
+                                    <span>Balance : 0 </span>
+                                }
+                            </div>
+                            <div className="amoutToken">
+                                <label>Staking</label>                                    
                                 { 
                                 balanceOfMatic >= 0 ?
                                     <span>Balance : {balanceOfMatic}</span>
@@ -135,7 +144,16 @@ const PurchaseForm = () => {
                         <div className="rightInputs NewHolder">
 
                             <div className="amoutToken">
-                                <label>To</label>
+                                <label>Total Claimed</label>                                    
+                                { 
+                                balanceOfMatic >= 0 ?
+                                    <span>Balance : {balanceOfMatic}</span>
+                                    :
+                                    <span>Balance : 0 </span>
+                                }
+                            </div>
+                            <div className="amoutToken">
+                                <label>Rewards</label>
                                 { 
                                 balanceOfRealToken >= 0 ?
                                     <span>Balance : {balanceOfRealToken}</span>

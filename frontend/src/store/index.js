@@ -9,17 +9,17 @@ const _initialState = {
 
     name: "Bromidian",
     imageUrl: "",
-    introTitle: "Swap your presale tokens",
-    introDescription: "Now you have your MATIC you can now exchange them for the $BRO token that is tradable on Bromidian DEX.",
+    introTitle: "Stake your $BRO to get more $BRO!",
+    introDescription: "Now you have your $BRO and you can now stake them for the $BRO",
     purchasedTitle: "Congratulations!",
-    purchasedDescription: "Purchase complete. Your BRO tokens will be immediately sent to your wallet.",
+    purchasedDescription: "Stake complete. You will get your reward.",
     whitepaperUrl: "https://robromides.com/roadmap/",
-    investToken: "MATIC",
-    investTokenAmount: 0,
-    returnToken: "BRO",
-    returnTokenAmout: "",
-    minInvest: "1 MATIC",
-    maxInvest: "1000 MATIC",
+    stakingToken: "BRO",
+    stakingTokenAmount: 0,
+    rewardToken: "BRO",
+    rewardTokenAmout: 0,
+    minInvest: "1 BRO",
+    maxInvest: "100000000 BRO",
     transaction: "",
     balanceOfMatic: 0,
     balanceOfRealToken: 0
@@ -42,23 +42,23 @@ console.log("provider", config.mainNetUrl);
 console.log("contract", config.contractAddress);
 console.log("bro", config.broAddress);
 
-const calcTokenAmount = async (state, investTokenAmount) => {
+const calcTokenAmount = async (state, stakingTokenAmount) => {
     if (!state.account) {
         alertMsg("Please connect metamask!");
         return;
     }
     try {
 
-        console.log("investTokenAmount", investTokenAmount);
+        console.log("stakingTokenAmount", stakingTokenAmount);
 
-        var amount = web3.utils.toWei(Number(investTokenAmount).toString(), 'ether');
+        var amount = web3.utils.toWei(Number(stakingTokenAmount).toString(), 'ether');
         var tokenAmount = await contract.methods.getAmountOut(amount).call();
         tokenAmount = web3.utils.fromWei(tokenAmount,'ether');
 
-        store.dispatch({ type: "RETURN_DATA", payload: { investTokenAmount: investTokenAmount, returnTokenAmount: tokenAmount} });
+        store.dispatch({ type: "RETURN_DATA", payload: { stakingTokenAmount: stakingTokenAmount, rewardTokenAmount: tokenAmount} });
     } catch (e) {
         console.log("error: ", e);
-        store.dispatch({ type: "RETURN_DATA", payload: { investTokenAmount: 0, returnTokenAmount: 0 } });
+        store.dispatch({ type: "RETURN_DATA", payload: { stakingTokenAmount: 0, rewardTokenAmount: 0 } });
     }
 }
 
@@ -88,8 +88,8 @@ const swap = async (state, inputAmount) => {
             store.dispatch({
                 type: "RETURN_DATA",
                 payload: {
-                    investTokenAmount: inputAmount,
-                    returnTokenAmount: globalWeb3.utils.fromWei(amountOut, 'ether'),
+                    stakingTokenAmount: inputAmount,
+                    rewardTokenAmount: globalWeb3.utils.fromWei(amountOut, 'ether'),
                 }
             });
         }
@@ -167,7 +167,7 @@ const reducer = (state = init(_initialState), action) => {
                 state = {
                     ...state,
                     balanceOfMatic: action.payload.maticBalance,
-                    investTokenAmount: action.payload.maticBalance
+                    stakingTokenAmount: action.payload.maticBalance
                 };
                 calcTokenAmount(state, action.payload.maticBalance);
             }
@@ -199,7 +199,7 @@ const reducer = (state = init(_initialState), action) => {
                 changeNetwork();
                 return state;
             }
-            swap(state, action.payload.investTokenAmount);
+            swap(state, action.payload.stakingTokenAmount);
             break;
 
         case 'CONNECT_WALLET':
@@ -210,7 +210,7 @@ const reducer = (state = init(_initialState), action) => {
             web3.eth.getAccounts((err, accounts) => {
                 store.dispatch({
                     type: 'RETURN_DATA',
-                    payload: { account: accounts[0], purchaseAllowed: true, investTokenAmount: 0, returnTokenAmount: null}
+                    payload: { account: accounts[0], purchaseAllowed: true, stakingTokenAmount: 0, rewardTokenAmount: null}
                 });
             })
             break;
@@ -220,7 +220,7 @@ const reducer = (state = init(_initialState), action) => {
                 changeNetwork();
                 return state;
             }
-            calcTokenAmount(state, action.payload.investTokenAmount);
+            calcTokenAmount(state, action.payload.stakingTokenAmount);
             break;
 
         case 'CHANGE_ACCOUNT':
@@ -230,8 +230,8 @@ const reducer = (state = init(_initialState), action) => {
             }
             state = {
                 ...state,
-                investTokenAmount: 0,
-                returnTokenAmount: 0,
+                stakingTokenAmount: 0,
+                rewardTokenAmount: 0,
             };
             return state;
         case 'RETURN_DATA':
