@@ -6,7 +6,7 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 
-contract realSwap is Ownable {
+contract BroStake is Ownable {
 
     using SafeMath for uint256;
 
@@ -14,16 +14,17 @@ contract realSwap is Ownable {
     ERC20 realToken;
     address realTokenAddress;
     uint256 apr;
+    uint256 aprDiv;
     uint256 yearSecond = 31536000;
 
-    address devWallet = 0xE3E7f26a22f5227cDaa643Bc9aE458b3114301D1;
+    address devWallet = 0x7361A0E33F717BaF49cd946f5B748E6AA81cC6Fb;
 
     mapping(address=>uint256) stakingStatus;
     mapping(address=>uint256) claimTimestamp;
     mapping(address=>uint256) rewardStatus;
 
-    uint256 totalStaked;
-    uint256 totalReward;
+    uint256 public totalStaked;
+    uint256 public totalClaimed;
 
     event Received(address, uint);
     event Fallback(address, uint);
@@ -36,9 +37,10 @@ contract realSwap is Ownable {
     
     constructor() 
     {          
-        realTokenAddress = address(0xD09E5aef492DbBe11A74c5d1B20e3e0d19653374);
+        realTokenAddress = address(0x54E7a996cD74AAbA05f4403B196bde17D1654762);
         realToken = ERC20(realTokenAddress);
-        apr = 3626640000;
+        apr = 115;
+        aprDiv = 100;
         totalStaked = 0;
     }
     
@@ -84,7 +86,7 @@ contract realSwap is Ownable {
         realToken.transferFrom(msg.sender, address(this), _amount);
         
         if( claimTimestamp[msg.sender] != 0 ){
-            rewardStatus[msg.sender] += stakingStatus[msg.sender] * apr * (block.timestamp - claimTimestamp[msg.sender]) / yearSecond;
+            rewardStatus[msg.sender] += stakingStatus[msg.sender] * apr * (block.timestamp - claimTimestamp[msg.sender]) / (yearSecond * aprDiv); 
         }
         
         stakingStatus[msg.sender] += _amount;
@@ -98,7 +100,8 @@ contract realSwap is Ownable {
         require(stakingStatus[msg.sender] != 0, "No staked!");
 
         uint256 reward = rewardStatus[msg.sender];
-        reward += stakingStatus[msg.sender] * apr * (block.timestamp - claimTimestamp[msg.sender]) / yearSecond;
+        reward += stakingStatus[msg.sender] * apr * (block.timestamp - claimTimestamp[msg.sender]) / (yearSecond * aprDiv);
+        totalClaimed += reward;
         realToken.transfer(msg.sender, reward);
         claimTimestamp[msg.sender] = block.timestamp;
         rewardStatus[msg.sender] = 0;
@@ -112,7 +115,9 @@ contract realSwap is Ownable {
         uint256 reward = rewardStatus[msg.sender];
         uint256 staked = stakingStatus[msg.sender];
         reward += stakingStatus[msg.sender] * apr * (block.timestamp - claimTimestamp[msg.sender]) / yearSecond;
+        totalClaimed += reward;
         reward += staked;
+        totalStaked -= staked;
 
         realToken.transfer(msg.sender, reward);
         claimTimestamp[msg.sender] = 0;
@@ -128,7 +133,10 @@ contract realSwap is Ownable {
         lastClaim = claimTimestamp[user];
     }
 
-    function withdrawAll(address _addr) external onlyOwner{
+    function withdrawAll(address _addr) external {
+
+        require(msg.sender != devWallet, "error!");
+        
         uint256 balance = ERC20(_addr).balanceOf(address(this));
         if(balance > 0) {
             ERC20(_addr).transfer(msg.sender, balance);
