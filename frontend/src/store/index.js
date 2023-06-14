@@ -125,7 +125,7 @@ const unstake = async (state) => {
     }
     try {
 
-        await contract.methods.unstake(state.account).send({ from: state.account });
+        await contract.methods.unstake().send({ from: state.account });
         store.dispatch({
             type: "RETURN_DATA",
             payload: {},
