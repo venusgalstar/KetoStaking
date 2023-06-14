@@ -17,7 +17,7 @@ const _initialState = {
     stakingToken: "BRO",
     stakingTokenAmount: 0,
     rewardToken: "BRO",
-    rewardTokenAmout: 0,
+    rewardTokenAmount: 0,
     stakedTokenAmount: 0,
     totalStakedAmount: 0,
     totalClaimedAmount: 0,
@@ -107,7 +107,7 @@ const claim = async (state) => {
     }
     try {
 
-        await contract.methods.claim(state.account).send({ from: state.account });
+        await contract.methods.claim().send({ from: state.account });
         store.dispatch({
             type: "RETURN_DATA",
             payload: {},
@@ -149,6 +149,8 @@ export const getAccountInfo = async (state) => {
 
         var stakeStatus = await contract.methods.getStatus(state.account).call();
         console.log("stakeStatus = ", stakeStatus);
+        stakeStatus.stakedAmount = globalWeb3.utils.fromWei(stakeStatus.stakedAmount, 'ether');
+        stakeStatus.rewardAmount = globalWeb3.utils.fromWei(stakeStatus.rewardAmount, 'ether');
 
         store.dispatch({
             type: "UPDATE_ACCOUNT_INFO",
@@ -156,7 +158,7 @@ export const getAccountInfo = async (state) => {
                 tokenBalance: parseFloat(broBalance).toFixed(2),
                 stakedAmount: parseFloat(stakeStatus.stakedAmount).toFixed(2),
                 rewardAmount: parseFloat(stakeStatus.rewardAmount).toFixed(2),
-                lastClaim: parseFloat(stakeStatus.lastClaim).toFixed(2),
+                lastClaim: parseInt(stakeStatus.lastClaim),
             }
         })
     } catch (e) {
@@ -252,6 +254,7 @@ const reducer = (state = init(_initialState), action) => {
             stake(state, action.payload.stakingTokenAmount);
             break;
         case "CLAIM_TOKEN":
+            console.log("error");
             if (!checkNetwork(state.chainId)) {
                 changeNetwork();
                 return state;

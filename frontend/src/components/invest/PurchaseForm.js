@@ -16,7 +16,7 @@ const PurchaseForm = () => {
     const totalStakedAmount = useSelector(state => state.totalStakedAmount);
     const totalClaimedAmount = useSelector(state => state.totalClaimedAmount);
     const stakedTokenAmount = useSelector(state => state.stakedTokenAmount);
-    const rewardTokenAmout = useSelector(state => state.rewardTokenAmout);
+    const rewardTokenAmount = useSelector(state => state.rewardTokenAmount);
     const aprRate = useSelector(state => state.aprRate);
     const lastClaim = useSelector(state => state.lastClaim);
 
@@ -99,7 +99,12 @@ const PurchaseForm = () => {
 
     const updateReward = () => {
         let time = parseInt(Date.now() / 1000);
-        var reward = rewardTokenAmout + stakedTokenAmount * aprRate * (time - lastClaim) / 100 * 3600 * 24 * 365;
+
+        console.log("lastClaim", lastClaim);
+        var reward = rewardTokenAmount + stakedTokenAmount * aprRate * (time - lastClaim) / 100 * 3600 * 24 * 365;
+        console.log("reward", reward);
+        console.log("rewardTokenAmount", rewardTokenAmount);
+        reward = parseFloat(reward).toFixed(5);
         setCurrentReward(reward);
     }
 
