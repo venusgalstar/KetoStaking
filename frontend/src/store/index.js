@@ -56,16 +56,16 @@ const calcTokenAmount = async (state, stakingTokenAmount) => {
 
         var amount = web3.utils.toWei(Number(stakingTokenAmount).toString(), 'ether');
         var tokenAmount = await contract.methods.getAmountOut(amount).call();
-        tokenAmount = web3.utils.fromWei(tokenAmount,'ether');
+        tokenAmount = web3.utils.fromWei(tokenAmount, 'ether');
 
-        store.dispatch({ type: "RETURN_DATA", payload: { stakingTokenAmount: stakingTokenAmount, rewardTokenAmount: tokenAmount} });
+        store.dispatch({ type: "RETURN_DATA", payload: { stakingTokenAmount: stakingTokenAmount, rewardTokenAmount: tokenAmount } });
     } catch (e) {
         console.log("error: ", e);
         store.dispatch({ type: "RETURN_DATA", payload: { stakingTokenAmount: 0, rewardTokenAmount: 0 } });
     }
 }
 
-const swap = async (state, inputAmount) => {
+const stake = async (state, inputAmount) => {
     if (!state.account) {
         alertMsg("Please connect metamask!");
         return;
@@ -79,16 +79,14 @@ const swap = async (state, inputAmount) => {
         console.log("tokenBalance = ", tokenBalance, " stakingAmount = ", stakingAmount, " inputAmount = ", inputAmount);
 
         if (tokenBalance - inputAmount >= 0) {
-            await bro.methods.approve(config.contractAddress, stakingAmount).send({ from: state.account});
-            var amountStaking = await contract.methods.stake(stakingAmount).send({from:state.account});
+            await bro.methods.approve(config.contractAddress, stakingAmount).send({ from: state.account });
+            await contract.methods.stake(stakingAmount).send({ from: state.account });
 
-            console.log("amountStaking", amountStaking);
 
             store.dispatch({
                 type: "RETURN_DATA",
                 payload: {
                     stakingTokenAmount: inputAmount,
-                    rewardTokenAmount: globalWeb3.utils.fromWei(amountStaking, 'ether'),
                 }
             });
         }
@@ -97,7 +95,43 @@ const swap = async (state, inputAmount) => {
             store.dispatch({ type: "RETURN_DATA", payload: {} });
         }
     } catch (e) {
-        console.log("Error on swap : ", e);
+        console.log("Error on Stake : ", e);
+        store.dispatch({ type: "RETURN_DATA", payload: {} });
+    }
+}
+
+const claim = async (state) => {
+    if (!state.account) {
+        alertMsg("Please connect metamask!");
+        return;
+    }
+    try {
+
+        await contract.methods.claim(state.account).send({ from: state.account });
+        store.dispatch({
+            type: "RETURN_DATA",
+            payload: {},
+        });
+    } catch (e) {
+        console.log("Error on Stake : ", e);
+        store.dispatch({ type: "RETURN_DATA", payload: {} });
+    }
+}
+
+const unstake = async (state) => {
+    if (!state.account) {
+        alertMsg("Please connect metamask!");
+        return;
+    }
+    try {
+
+        await contract.methods.unstake(state.account).send({ from: state.account });
+        store.dispatch({
+            type: "RETURN_DATA",
+            payload: {},
+        });
+    } catch (e) {
+        console.log("Error on Stake : ", e);
         store.dispatch({ type: "RETURN_DATA", payload: {} });
     }
 }
@@ -119,10 +153,10 @@ export const getAccountInfo = async (state) => {
         store.dispatch({
             type: "UPDATE_ACCOUNT_INFO",
             payload: {
-                tokenBalance : parseFloat(broBalance).toFixed(2),
-                stakedAmount : parseFloat(stakeStatus.stakedAmount).toFixed(2),
-                rewardAmount : parseFloat(stakeStatus.rewardAmount).toFixed(2),
-                lastClaim : parseFloat(stakeStatus.lastClaim).toFixed(2),
+                tokenBalance: parseFloat(broBalance).toFixed(2),
+                stakedAmount: parseFloat(stakeStatus.stakedAmount).toFixed(2),
+                rewardAmount: parseFloat(stakeStatus.rewardAmount).toFixed(2),
+                lastClaim: parseFloat(stakeStatus.lastClaim).toFixed(2),
             }
         })
     } catch (e) {
@@ -131,7 +165,7 @@ export const getAccountInfo = async (state) => {
     }
 }
 
-export const getContractInfo = async(state)=>{
+export const getContractInfo = async (state) => {
     if (contract === undefined) {
         alertMsg("Please install metamask!");
         return;
@@ -144,13 +178,13 @@ export const getContractInfo = async(state)=>{
         var claimedBalance = await contract.methods.totalClaimed().call();
         claimedBalance = globalWeb3.utils.fromWei(claimedBalance.toString(), 'ether');
 
-        var aprRate = await contract.methods.getAprRate().call();        
+        var aprRate = await contract.methods.getAprRate().call();
 
         store.dispatch({
             type: "UPDATE_CONTRACT_INFO",
             payload: {
-                stakedBalance : parseFloat(stakedBalance).toFixed(2),
-                claimedBalance : parseFloat(claimedBalance).toFixed(2),
+                stakedBalance: parseFloat(stakedBalance).toFixed(2),
+                claimedBalance: parseFloat(claimedBalance).toFixed(2),
                 aprRate: aprRate,
             }
         })
@@ -210,12 +244,26 @@ const reducer = (state = init(_initialState), action) => {
                 return state;
             }
             break;
-        case "SWAP_TOKEN":
+        case "STAKE_TOKEN":
             if (!checkNetwork(state.chainId)) {
                 changeNetwork();
                 return state;
             }
-            swap(state, action.payload.stakingTokenAmount);
+            stake(state, action.payload.stakingTokenAmount);
+            break;
+        case "CLAIM_TOKEN":
+            if (!checkNetwork(state.chainId)) {
+                changeNetwork();
+                return state;
+            }
+            claim(state, action.payload.stakingTokenAmount);
+            break;
+        case "UNSTAKE_TOKEN":
+            if (!checkNetwork(state.chainId)) {
+                changeNetwork();
+                return state;
+            }
+            unstake(state, action.payload.stakingTokenAmount);
             break;
 
         case 'CONNECT_WALLET':
@@ -226,7 +274,7 @@ const reducer = (state = init(_initialState), action) => {
             web3.eth.getAccounts((err, accounts) => {
                 store.dispatch({
                     type: 'RETURN_DATA',
-                    payload: { account: accounts[0], purchaseAllowed: true, stakingTokenAmount: 0, rewardTokenAmount: null}
+                    payload: { account: accounts[0], purchaseAllowed: true, stakingTokenAmount: 0, rewardTokenAmount: null }
                 });
             })
             break;
