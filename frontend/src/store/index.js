@@ -211,9 +211,9 @@ const reducer = (state = init(_initialState), action) => {
             state = {
                 ...state,
                 balanceOfBro: action.payload.broBalance,
-                stakedTokenAmount: 10000, //action.payload.stakedAmount,
+                stakedTokenAmount: action.payload.stakedAmount,
                 rewardTokenAmount: action.payload.rewardAmount,
-                lastClaim: 1686730176, //action.payload.lastClaim,
+                lastClaim: action.payload.lastClaim,
             };
             break;
             if (action.payload.flag === true) {
