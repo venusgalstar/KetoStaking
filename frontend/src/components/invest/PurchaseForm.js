@@ -8,20 +8,52 @@ import { useEffect, useState } from "react";
 const PurchaseForm = () => {
     const [invest, setInvestAmount] = useState("");
     const [isOpen, setIsOpen] = useState(false);
+    const [currentReward, setCurrentReward] = useState(0);
 
     const dispatch = useDispatch();
     const account = useSelector(state => state.account);
-    const returnTokenAmount = useSelector(state => state.returnTokenAmount);
-    const investTokenAmount = useSelector(state => state.investTokenAmount);
-    const balanceOfMatic = useSelector(state => state.balanceOfMatic);
-    const balanceOfRealToken = useSelector(state => state.balanceOfRealToken);
+    const stakingTokenAmount = useSelector(state => state.stakingTokenAmount);
+    const totalStakedAmount = useSelector(state => state.totalStakedAmount);
+    const totalClaimedAmount = useSelector(state => state.totalClaimedAmount);
+    const stakedTokenAmount = useSelector(state => state.stakedTokenAmount);
+    const rewardTokenAmout = useSelector(state => state.rewardTokenAmout);
+    const aprRate = useSelector(state => state.aprRate);
+    const lastClaim = useSelector(state => state.lastClaim);
 
-    console.log(balanceOfMatic);
-
-    const swap = () => {
-        if(Number(invest) > 0) dispatch({ type: "SWAP_TOKEN", payload: { investTokenAmount: invest } });
-        else {            
+    const stake = () => {
+        if (Number(invest) > 0) dispatch({ type: "STAKE_TOKEN", payload: { stakingTokenAmount: invest } });
+        else {
             toast.info('Input value must be bigger than zero.', {
+                position: 'top-center',
+                autoClose: 3000,
+                hideProgressBar: true,
+                closeOnClick: true,
+                pauseOnHover: true,
+                draggable: true,
+                progress: undefined,
+            });
+        }
+    }
+
+    const claim = () => {
+        if (Number(stakedTokenAmount) > 0) dispatch({ type: "CLAIM_TOKEN", payload: {} });
+        else {
+            toast.info('You did not stake.', {
+                position: 'top-center',
+                autoClose: 3000,
+                hideProgressBar: true,
+                closeOnClick: true,
+                pauseOnHover: true,
+                draggable: true,
+                progress: undefined,
+            });
+        }
+    }
+
+    const unstake = () => {
+        if (Number(stakedTokenAmount) > 0) dispatch({ type: "UNSTAKE_TOKEN", payload: {} });
+        else {
+            toast.info('You did not stake.', {
                 position: 'top-center',
                 autoClose: 3000,
                 hideProgressBar: true,
@@ -35,15 +67,6 @@ const PurchaseForm = () => {
 
     const handleChange = (event) => {
         setInvestAmount(event.target.value);
-        if(Number(event.target.value) > 0){
-            dispatch({
-                type: 'GET_TOKEN_AMOUNT', payload: { investTokenAmount: event.target.value }
-            });
-        }else{
-            dispatch({
-                type: 'GET_TOKEN_AMOUNT', payload: { investTokenAmount: 0 }
-            });
-        }
     }
 
     const handleConnect = async () => {
@@ -74,19 +97,37 @@ const PurchaseForm = () => {
         dispatch({ type: "GET_BALANCE_AND_SET_AMOUNT_OF_pPOP_TOKEN", payload: {} });
     }
 
-    useEffect(() => {
-        if (investTokenAmount >= 0) setInvestAmount(investTokenAmount);
-    }, [investTokenAmount])
+    const updateReward = () => {
+        let time = parseInt(Date.now() / 1000);
+        var reward = rewardTokenAmout + stakedTokenAmount * aprRate * (time - lastClaim) / 100 * 3600 * 24 * 365;
+        setCurrentReward(reward);
+    }
 
     useEffect(() => {
-        if(account)
-        {            
+        if (stakingTokenAmount >= 0) setInvestAmount(stakingTokenAmount);
+    }, [stakingTokenAmount])
+
+    useEffect(() => {
+        if (account) {
+
             setTimeout(() => {
-                dispatch({ type: "GET_BALANCE_OF_PRESALED_TOKEN", payload: {} });
-                dispatch({ type: "GET_BALANCE_OF_REAL_TOKEN", payload: {} });
-            }, [500])
+                setInterval(updateReward, 1000);
+            }, 1000);
+        }
+    }, [lastClaim]);
+
+    useEffect(() => {
+        if (account) {
+            setTimeout(() => {
+                dispatch({ type: "GET_ACCOUNT_INFO", payload: {} });
+            }, 500);
         }
     }, [account, dispatch]);
+
+    useEffect(() => {
+        console.log("AAA");
+        dispatch({ type: "GET_CONTRACT_INFO", payload: {} });
+    }, []);
 
     return (
         <>
@@ -96,26 +137,26 @@ const PurchaseForm = () => {
                         account ?
                             <div className="account-address">{account.slice(0, 6) + "..." + account.slice(38)}</div>
                             :
-                            <button onClick={() => togglePopup()} className="connectWallet">Connect wallet to swap</button>
+                            <button onClick={() => togglePopup()} className="connectWallet">Connect wallet</button>
                     }
                     <div className="newInputs">
                         <div className="leftInputs NewHolder">
                             <div className="amoutToken">
-                                <label>Total Staked</label>                                    
-                                { 
-                                balanceOfMatic >= 0 ?
-                                    <span>Balance : {balanceOfMatic}</span>
-                                    :
-                                    <span>Balance : 0 </span>
+                                <label>Total Staked</label>
+                                {
+                                    totalStakedAmount > 0 ?
+                                        <span>: {totalStakedAmount}</span>
+                                        :
+                                        <span>: 0 </span>
                                 }
                             </div>
                             <div className="amoutToken">
-                                <label>Staking</label>                                    
-                                { 
-                                balanceOfMatic >= 0 ?
-                                    <span>Balance : {balanceOfMatic}</span>
-                                    :
-                                    <span>Balance : 0 </span>
+                                <label>Staking</label>
+                                {
+                                    stakedTokenAmount >= 0 ?
+                                        <span>: {stakedTokenAmount}</span>
+                                        :
+                                        <span>: 0 </span>
                                 }
                             </div>
                             <div className="newInputsItem">
@@ -133,9 +174,9 @@ const PurchaseForm = () => {
                                 <span className="max_button" onClick={() => onClickMAX()}>MAX</span>
                                 <button className="selectDinar">
                                     <div className="optionDinar" >
-                                        <div className="imageDinar"><img alt="USDC.e" src="/img/matic.png" /></div>
+                                        <div className="imageDinar"><img alt="USDC.e" src="/img/logo.png" /></div>
                                     </div>
-                                    <div className="">MATIC</div>
+                                    <div className="">BRO</div>
                                 </button>
                             </div>
                             <PurchaseLimits compact={true} />
@@ -144,37 +185,29 @@ const PurchaseForm = () => {
                         <div className="rightInputs NewHolder">
 
                             <div className="amoutToken">
-                                <label>Total Claimed</label>                                    
-                                { 
-                                balanceOfMatic >= 0 ?
-                                    <span>Balance : {balanceOfMatic}</span>
-                                    :
-                                    <span>Balance : 0 </span>
+                                <label>Total Claimed</label>
+                                {
+                                    totalClaimedAmount > 0 ?
+                                        <span>: {totalClaimedAmount}</span>
+                                        :
+                                        <span>: 0 </span>
                                 }
                             </div>
                             <div className="amoutToken">
                                 <label>Rewards</label>
-                                { 
-                                balanceOfRealToken >= 0 ?
-                                    <span>Balance : {balanceOfRealToken}</span>
-                                    :
-                                    <span>Balance : 0 </span>
+                                {
+                                    currentReward > 0 ?
+                                        <span>: {currentReward}</span>
+                                        :
+                                        <span>: 0 </span>
                                 }
-                            </div>
-                            <div className="newInputsItem">
-                                <input className="disablePointer" type="text" placeholder="Autofill"
-                                    value={returnTokenAmount ?? "Autofill"} onChange={() => { }} readOnly />
-                                <button className="selectDinar">
-                                    <div className="optionDinar" >
-                                        <div className="imageDinar"><img src="/img/logo.png" alt="Bro token" /></div>
-                                    </div>
-                                    <div className="">BRO</div>
-                                </button>
                             </div>
                         </div>
 
                     </div>
-                    <button className="connectWallet" onClick={() => swap()}>Swap</button>
+                    <button className="connectWallet" onClick={() => stake()}>Stake</button>
+                    <button className="connectWallet" onClick={() => claim()}>Claim</button>
+                    <button className="connectWallet" onClick={() => unstake()}>Unstake</button>
                 </div>
                 {isOpen && (
                     <Popup

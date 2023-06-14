@@ -18,12 +18,15 @@ const _initialState = {
     stakingTokenAmount: 0,
     rewardToken: "BRO",
     rewardTokenAmout: 0,
+    stakedTokenAmount: 0,
+    totalStakedAmount: 0,
+    totalClaimedAmount: 0,
     minInvest: "1 BRO",
     maxInvest: "100000000 BRO",
     transaction: "",
-    balanceOfMatic: 0,
-    balanceOfRealToken: 0
-
+    balanceOfBro: 0,
+    aprRate: 0,
+    lastClaim: 0
 }
 
 const init = (init) => {
@@ -69,32 +72,28 @@ const swap = async (state, inputAmount) => {
     }
     try {
 
-        var maticBalance = await web3.eth.getBalance(state.account);
-        maticBalance = web3.utils.fromWei(maticBalance, 'ether');
-        var investAmount = web3.utils.toWei(Number(inputAmount).toString(), 'ether');
+        var tokenBalance = await bro.methods.balanceOf(state.account).call();
+        tokenBalance = web3.utils.fromWei(tokenBalance, 'ether');
+        var stakingAmount = web3.utils.toWei(Number(inputAmount).toString(), 'ether');
 
-        console.log("maticBalance = ", maticBalance, " investAmount = ", investAmount, " investAmount = ", inputAmount);
+        console.log("tokenBalance = ", tokenBalance, " stakingAmount = ", stakingAmount, " inputAmount = ", inputAmount);
 
-        if (maticBalance - inputAmount >= 0) {
-            var amountOut = await contract.methods.getAmountOut(investAmount).call();
+        if (tokenBalance - inputAmount >= 0) {
+            await bro.methods.approve(config.contractAddress, stakingAmount).send({ from: state.account});
+            var amountStaking = await contract.methods.stake(stakingAmount).send({from:state.account});
 
-            console.log("amountOut", amountOut);
-
-            await contract.methods.swap().send({ from: state.account, gas: 3000000, value:investAmount });
-
-            // await getBalanceOfPresaledToken(state);
-            // await getBalanceOfRealToken(state);
+            console.log("amountStaking", amountStaking);
 
             store.dispatch({
                 type: "RETURN_DATA",
                 payload: {
                     stakingTokenAmount: inputAmount,
-                    rewardTokenAmount: globalWeb3.utils.fromWei(amountOut, 'ether'),
+                    rewardTokenAmount: globalWeb3.utils.fromWei(amountStaking, 'ether'),
                 }
             });
         }
         else {
-            alertMsg("You don't have enough MATIC.");
+            alertMsg("You don't have enough BRO.");
             store.dispatch({ type: "RETURN_DATA", payload: {} });
         }
     } catch (e) {
@@ -103,44 +102,28 @@ const swap = async (state, inputAmount) => {
     }
 }
 
-export const getBalanceOfPresaledToken = async (state, flag = true) => {
+export const getAccountInfo = async (state) => {
     if (!state.account) {
         alertMsg("Please connect metamask!");
         return;
     }
     try {
-        var maticBalance = await web3.eth.getBalance(state.account);
-        maticBalance = web3.utils.fromWei(maticBalance, 'ether');
 
-        console.log("maticBalance = ", maticBalance);
+        var broBalance = await bro.methods.balanceOf(state.account).call();
+        broBalance = globalWeb3.utils.fromWei(broBalance, 'ether');
+        console.log("broBalance = ", broBalance);
+
+        var stakeStatus = await contract.methods.getStatus(state.account).call();
+        console.log("stakeStatus = ", stakeStatus);
+
         store.dispatch({
-            type: "UPDATE_PRESALE_TOKEN_BALANCE",
+            type: "UPDATE_ACCOUNT_INFO",
             payload: {
-                maticBalance,
-                flag
+                tokenBalance : parseFloat(broBalance).toFixed(2),
+                stakedAmount : parseFloat(stakeStatus.stakedAmount).toFixed(2),
+                rewardAmount : parseFloat(stakeStatus.rewardAmount).toFixed(2),
+                lastClaim : parseFloat(stakeStatus.lastClaim).toFixed(2),
             }
-        })
-    } catch (e) {
-        console.log("Error on getBalanceOfPresaledToken : ", e);
-        store.dispatch({ type: "RETURN_DATA", payload: {} });
-    }
-}
-
-export const getBalanceOfRealToken = async (state) => {
-    if (!state.account) {
-        alertMsg("Please connect metamask!");
-        return;
-    }
-    try {
-        console.log("account", state.account);
-
-        var rBroBalance = await bro.methods.balanceOf(state.account).call();
-        rBroBalance = globalWeb3.utils.fromWei(rBroBalance, 'ether');
-        console.log("rBroBalance = ", rBroBalance);
-
-        store.dispatch({
-            type: "UPDATE_REAL_TOKEN_BALANCE",
-            payload: rBroBalance
         })
     } catch (e) {
         console.log("Error on getBalanceOfRealToken : ", e);
@@ -148,15 +131,57 @@ export const getBalanceOfRealToken = async (state) => {
     }
 }
 
+export const getContractInfo = async(state)=>{
+    if (contract === undefined) {
+        alertMsg("Please install metamask!");
+        return;
+    }
+    try {
+
+        var stakedBalance = await contract.methods.totalStaked().call();
+        stakedBalance = globalWeb3.utils.fromWei(stakedBalance.toString(), 'ether');
+
+        var claimedBalance = await contract.methods.totalClaimed().call();
+        claimedBalance = globalWeb3.utils.fromWei(claimedBalance.toString(), 'ether');
+
+        var aprRate = await contract.methods.getAprRate().call();        
+
+        store.dispatch({
+            type: "UPDATE_CONTRACT_INFO",
+            payload: {
+                stakedBalance : parseFloat(stakedBalance).toFixed(2),
+                claimedBalance : parseFloat(claimedBalance).toFixed(2),
+                aprRate: aprRate,
+            }
+        })
+    } catch (e) {
+        console.log("Error on getContractInfo : ", e);
+        store.dispatch({ type: "RETURN_DATA", payload: {} });
+    }
+}
+
 const reducer = (state = init(_initialState), action) => {
     switch (action.type) {
-        case "UPDATE_REAL_TOKEN_BALANCE":
+        case "GET_CONTRACT_INFO":
+            getContractInfo(state);
+            break;
+        case "UPDATE_CONTRACT_INFO":
             state = {
                 ...state,
-                balanceOfRealToken: action.payload
+                totalStakedAmount: action.payload.stakedBalance,
+                totalClaimedAmount: action.payload.claimedBalance,
+                aprRate: action.payload.aprRate,
             };
             break;
-        case "UPDATE_PRESALE_TOKEN_BALANCE":
+        case "UPDATE_ACCOUNT_INFO":
+            state = {
+                ...state,
+                balanceOfBro: action.payload.broBalance,
+                stakedTokenAmount: 10000, //action.payload.stakedAmount,
+                rewardTokenAmount: action.payload.rewardAmount,
+                lastClaim: 1686730176, //action.payload.lastClaim,
+            };
+            break;
             if (action.payload.flag === true) {
                 state = {
                     ...state,
@@ -172,28 +197,19 @@ const reducer = (state = init(_initialState), action) => {
                 calcTokenAmount(state, action.payload.maticBalance);
             }
             break;
-        case "GET_BALANCE_OF_REAL_TOKEN":
+        case "GET_ACCOUNT_INFO":
             if (!checkNetwork(state.chainId)) {
                 changeNetwork();
                 return state;
             }
-            getBalanceOfRealToken(state);
+            getAccountInfo(state);
             break;
         case "GET_BALANCE_AND_SET_AMOUNT_OF_pPOP_TOKEN":
             if (!checkNetwork(state.chainId)) {
                 changeNetwork();
                 return state;
             }
-            getBalanceOfPresaledToken(state, false);
             break;
-        case "GET_BALANCE_OF_PRESALED_TOKEN":
-            if (!checkNetwork(state.chainId)) {
-                changeNetwork();
-                return state;
-            }
-            getBalanceOfPresaledToken(state);
-            break;
-
         case "SWAP_TOKEN":
             if (!checkNetwork(state.chainId)) {
                 changeNetwork();
@@ -214,15 +230,6 @@ const reducer = (state = init(_initialState), action) => {
                 });
             })
             break;
-
-        case 'GET_TOKEN_AMOUNT':
-            if (!checkNetwork(state.chainId)) {
-                changeNetwork();
-                return state;
-            }
-            calcTokenAmount(state, action.payload.stakingTokenAmount);
-            break;
-
         case 'CHANGE_ACCOUNT':
             if (!checkNetwork(state.chainId)) {
                 changeNetwork();

@@ -10,17 +10,17 @@
 			{
 				"indexed": false,
 				"internalType": "address",
-				"name": "owner",
+				"name": "",
 				"type": "address"
 			},
 			{
 				"indexed": false,
 				"internalType": "address",
-				"name": "newAddr",
+				"name": "",
 				"type": "address"
 			}
 		],
-		"name": "ChangePresaledTokenAddress",
+		"name": "ChangeRealTokenAddress",
 		"type": "event"
 	},
 	{
@@ -29,17 +29,17 @@
 			{
 				"indexed": false,
 				"internalType": "address",
-				"name": "owner",
+				"name": "",
 				"type": "address"
 			},
 			{
 				"indexed": false,
-				"internalType": "address",
-				"name": "newAddr",
-				"type": "address"
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
 			}
 		],
-		"name": "ChangeRealTokenAddress",
+		"name": "Claimed",
 		"type": "event"
 	},
 	{
@@ -123,18 +123,37 @@
 		"inputs": [
 			{
 				"indexed": false,
-				"internalType": "uint256",
-				"name": "amountIn",
-				"type": "uint256"
+				"internalType": "address",
+				"name": "",
+				"type": "address"
 			},
 			{
 				"indexed": false,
 				"internalType": "uint256",
-				"name": "amountOut",
+				"name": "",
 				"type": "uint256"
 			}
 		],
-		"name": "Swapped",
+		"name": "Staked",
+		"type": "event"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": false,
+				"internalType": "address",
+				"name": "",
+				"type": "address"
+			},
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"name": "Unstaked",
 		"type": "event"
 	},
 	{
@@ -167,14 +186,15 @@
 		"type": "fallback"
 	},
 	{
-		"inputs": [
-			{
-				"internalType": "uint256",
-				"name": "_amountIn",
-				"type": "uint256"
-			}
-		],
-		"name": "getAmountOut",
+		"inputs": [],
+		"name": "claim",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "getAprRate",
 		"outputs": [
 			{
 				"internalType": "uint256",
@@ -200,12 +220,12 @@
 	},
 	{
 		"inputs": [],
-		"name": "getManagerWallet",
+		"name": "getLockperiod",
 		"outputs": [
 			{
-				"internalType": "address",
+				"internalType": "uint256",
 				"name": "",
-				"type": "address"
+				"type": "uint256"
 			}
 		],
 		"stateMutability": "view",
@@ -225,12 +245,28 @@
 		"type": "function"
 	},
 	{
-		"inputs": [],
-		"name": "getSwapRate",
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "user",
+				"type": "address"
+			}
+		],
+		"name": "getStatus",
 		"outputs": [
 			{
 				"internalType": "uint256",
-				"name": "",
+				"name": "stakedAmount",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint256",
+				"name": "rewardAmount",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint256",
+				"name": "lastClaim",
 				"type": "uint256"
 			}
 		],
@@ -260,6 +296,19 @@
 	{
 		"inputs": [
 			{
+				"internalType": "uint256",
+				"name": "_newAprRate",
+				"type": "uint256"
+			}
+		],
+		"name": "setAprRate",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
 				"internalType": "uint8",
 				"name": "_newPauseContract",
 				"type": "uint8"
@@ -273,12 +322,12 @@
 	{
 		"inputs": [
 			{
-				"internalType": "address",
-				"name": "_newWallet",
-				"type": "address"
+				"internalType": "uint256",
+				"name": "_newLockperiod",
+				"type": "uint256"
 			}
 		],
-		"name": "setManagerWallet",
+		"name": "setLockperiod",
 		"outputs": [],
 		"stateMutability": "nonpayable",
 		"type": "function"
@@ -300,20 +349,39 @@
 		"inputs": [
 			{
 				"internalType": "uint256",
-				"name": "_newSwapRate",
+				"name": "_amount",
 				"type": "uint256"
 			}
 		],
-		"name": "setSwapRate",
+		"name": "stake",
 		"outputs": [],
 		"stateMutability": "nonpayable",
 		"type": "function"
 	},
 	{
 		"inputs": [],
-		"name": "swap",
-		"outputs": [],
-		"stateMutability": "payable",
+		"name": "totalClaimed",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "totalStaked",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
 		"type": "function"
 	},
 	{
@@ -325,6 +393,13 @@
 			}
 		],
 		"name": "transferOwnership",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "unstake",
 		"outputs": [],
 		"stateMutability": "nonpayable",
 		"type": "function"
